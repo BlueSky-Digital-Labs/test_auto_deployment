@@ -41,8 +41,30 @@ jobs:
           docker tag prototype-frontend:latest 128363281216.dkr.ecr.ap-southeast-2.amazonaws.com/my-react-app:latest
           docker push 128363281216.dkr.ecr.ap-southeast-2.amazonaws.com/my-react-app:latest
 
-      # Step 6: Deploy to ECS
+      # Step 6: Check and create the Django service if it does not exist
+      - name: Create Django Service if Not Exists
+        run: |
+          SERVICE_EXISTS=$(aws ecs describe-services --cluster auto_deployment_test_cluster --services my-django-service --region ap-southeast-2 --query 'failures[0]' | grep -c "MISSING")
+          if [ "$SERVICE_EXISTS" -eq 1 ]; then
+            echo "Django service does not exist. Creating service..."
+            aws ecs create-service --cluster auto_deployment_test_cluster --service-name my-django-service --task-definition my-django-task --desired-count 1 --launch-type EC2 --region ap-southeast-2
+          else
+            echo "Django service exists."
+          fi
+
+      # Step 7: Check and create the React service if it does not exist
+      - name: Create React Service if Not Exists
+        run: |
+          SERVICE_EXISTS=$(aws ecs describe-services --cluster auto_deployment_test_cluster --services my-react-service --region ap-southeast-2 --query 'failures[0]' | grep -c "MISSING")
+          if [ "$SERVICE_EXISTS" -eq 1 ]; then
+            echo "React service does not exist. Creating service..."
+            aws ecs create-service --cluster auto_deployment_test_cluster --service-name my-react-service --task-definition my-react-task --desired-count 1 --launch-type EC2 --region ap-southeast-2
+          else
+            echo "React service exists."
+          fi
+
+      # Step 8: Deploy to ECS
       - name: Deploy to Amazon ECS
         run: |
-          aws ecs update-service --cluster auto_deployment_test_cluster --service my-django-service --force-new-deployment
-          aws ecs update-service --cluster auto_deployment_test_cluster --service my-react-service --force-new-deployment
+          aws ecs update-service --cluster auto_deployment_test_cluster --service my-django-service --force-new-deployment --region ap-southeast-2
+          aws ecs update-service --cluster auto_deployment_test_cluster --service my-react-service --force-new-deployment --region ap-southeast-2
