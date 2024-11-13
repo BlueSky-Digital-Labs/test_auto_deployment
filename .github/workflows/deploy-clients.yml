@@ -66,55 +66,55 @@ jobs:
             echo "Repository '$REPO_NAME' already exists."
           fi
 
-      - name: Login to Amazon ECR
-        run: |
-          aws ecr get-login-password --region ap-southeast-2 | docker login --username AWS --password-stdin 128363281216.dkr.ecr.ap-southeast-2.amazonaws.com
+      # - name: Login to Amazon ECR
+      #   run: |
+      #     aws ecr get-login-password --region ap-southeast-2 | docker login --username AWS --password-stdin 128363281216.dkr.ecr.ap-southeast-2.amazonaws.com
       
-      - name: Build, Tag, and Push Django Image
-        run: |
-          echo "Building Django image..."
-          docker build -t prototype-backend ./${{ env.CHANGED_DIRS }}/backend
-          docker tag prototype-backend:latest 128363281216.dkr.ecr.ap-southeast-2.amazonaws.com/${{ env.CHANGED_DIRS }}-django-app:latest
-          echo "Pushing Django image to ECR..."
-          docker push 128363281216.dkr.ecr.ap-southeast-2.amazonaws.com/${{ env.CHANGED_DIRS }}-django-app:latest
+      # - name: Build, Tag, and Push Django Image
+      #   run: |
+      #     echo "Building Django image..."
+      #     docker build -t prototype-backend ./${{ env.CHANGED_DIRS }}/backend
+      #     docker tag prototype-backend:latest 128363281216.dkr.ecr.ap-southeast-2.amazonaws.com/${{ env.CHANGED_DIRS }}-django-app:latest
+      #     echo "Pushing Django image to ECR..."
+      #     docker push 128363281216.dkr.ecr.ap-southeast-2.amazonaws.com/${{ env.CHANGED_DIRS }}-django-app:latest
 
-      - name: Check if ECR Repository Exists and Create if Not
-        id: create_ecr_repo_frontend
-        shell: bash
-        run: |
-          REPO_NAME="${{ env.CHANGED_DIRS }}-react-app"  # Replace with your desired repository name
-          REGION="ap-southeast-2"  # Default region if not set in secrets
+      # - name: Check if ECR Repository Exists and Create if Not
+      #   id: create_ecr_repo_frontend
+      #   shell: bash
+      #   run: |
+      #     REPO_NAME="${{ env.CHANGED_DIRS }}-react-app"  # Replace with your desired repository name
+      #     REGION="ap-southeast-2"  # Default region if not set in secrets
 
-          # Check if the repository exists
-          EXISTING_REPO=$(aws ecr describe-repositories --repository-names "$REPO_NAME" --query "repositories[0].repositoryName" --output text 2>/dev/null || true)
+      #     # Check if the repository exists
+      #     EXISTING_REPO=$(aws ecr describe-repositories --repository-names "$REPO_NAME" --query "repositories[0].repositoryName" --output text 2>/dev/null || true)
 
-          if [ "$EXISTING_REPO" != "$REPO_NAME" ]; then
-            echo "Repository '$REPO_NAME' does not exist. Creating..."
-            aws ecr create-repository --repository-name "$REPO_NAME"
-            echo "Repository '$REPO_NAME' created successfully."
-          else
-            echo "Repository '$REPO_NAME' already exists."
-          fi
+      #     if [ "$EXISTING_REPO" != "$REPO_NAME" ]; then
+      #       echo "Repository '$REPO_NAME' does not exist. Creating..."
+      #       aws ecr create-repository --repository-name "$REPO_NAME"
+      #       echo "Repository '$REPO_NAME' created successfully."
+      #     else
+      #       echo "Repository '$REPO_NAME' already exists."
+      #     fi
 
-      - name: Build, Tag, and Push React Image
-        run: |
-          echo "Building React image..."
-          docker build -t prototype-frontend ./${{ env.CHANGED_DIRS }}/frontend
-          docker tag prototype-frontend:latest 128363281216.dkr.ecr.ap-southeast-2.amazonaws.com/${{ env.CHANGED_DIRS }}-react-app:latest
-          echo "Pushing React image to ECR..."
-          docker push 128363281216.dkr.ecr.ap-southeast-2.amazonaws.com/${{ env.CHANGED_DIRS }}-react-app:latest
+      # - name: Build, Tag, and Push React Image
+      #   run: |
+      #     echo "Building React image..."
+      #     docker build -t prototype-frontend ./${{ env.CHANGED_DIRS }}/frontend
+      #     docker tag prototype-frontend:latest 128363281216.dkr.ecr.ap-southeast-2.amazonaws.com/${{ env.CHANGED_DIRS }}-react-app:latest
+      #     echo "Pushing React image to ECR..."
+      #     docker push 128363281216.dkr.ecr.ap-southeast-2.amazonaws.com/${{ env.CHANGED_DIRS }}-react-app:latest
 
-      - name: Check if ECS Cluster exists and create if not
-        id: check-cluster
-        run: |
-          CLUSTER_NAME="${{ env.CHANGED_DIRS }}-cluster"
-          if aws ecs describe-clusters --clusters $CLUSTER_NAME --query "clusters[?status == 'ACTIVE'].clusterName" --output text | grep -q $CLUSTER_NAME; then
-            echo "Cluster $CLUSTER_NAME already exists."
-          else
-            echo "Creating ECS Cluster $CLUSTER_NAME..."
-            aws ecs create-cluster --cluster-name $CLUSTER_NAME
-            echo "Cluster $CLUSTER_NAME created."
-          fi
+      # - name: Check if ECS Cluster exists and create if not
+      #   id: check-cluster
+      #   run: |
+      #     CLUSTER_NAME="${{ env.CHANGED_DIRS }}-cluster"
+      #     if aws ecs describe-clusters --clusters $CLUSTER_NAME --query "clusters[?status == 'ACTIVE'].clusterName" --output text | grep -q $CLUSTER_NAME; then
+      #       echo "Cluster $CLUSTER_NAME already exists."
+      #     else
+      #       echo "Creating ECS Cluster $CLUSTER_NAME..."
+      #       aws ecs create-cluster --cluster-name $CLUSTER_NAME
+      #       echo "Cluster $CLUSTER_NAME created."
+      #     fi
 
       # - name: Register ECS Task Definition for NGINX
       #   id: register-task
@@ -206,7 +206,7 @@ jobs:
           #   echo "$TASK_DEFINITION_JSON" > task-definition.json
           #   NEW_TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json file://task-definition.json --query "taskDefinition.taskDefinitionArn" --output text)
           #   echo "New Task Definition Created ARN: $NEW_TASK_DEF_ARN"
-          # fi
+          fi
           echo "new_task_definition_arn=$NEW_TASK_DEF_ARN" >> $GITHUB_ENV
 
       - name: Create ECS Service for NGINX
