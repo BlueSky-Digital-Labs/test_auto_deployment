@@ -34,5 +34,5 @@ jobs:
             fi
           done
 
-      - name: Output Changed Directories
-        run: echo "Changed directories: ${{ steps.check_changes.outputs.changed_dirs }}"
+      #- name: Output Changed Directories
+       # run: echo "Changed directories: ${{ steps.check_changes.outputs.changed_dirs }}"
