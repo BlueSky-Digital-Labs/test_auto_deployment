@@ -125,14 +125,14 @@ jobs:
             "networkMode": "awsvpc",
             "containerDefinitions": [
               {
-                "name": "nginx",
-                "image": "nginx:latest",
+                "name": "react",
+                "image": "128363281216.dkr.ecr.ap-southeast-2.amazonaws.com/${{ env.CHANGED_DIRS }}-react-app:latest",
                 "memory": 512,
                 "cpu": 256,
                 "essential": true,
                 "portMappings": [
                   {
-                    "containerPort": 80,
+                    "containerPort": 3000,
                     "hostPort": 80,
                     "protocol": "tcp"
                   }
@@ -158,6 +158,11 @@ jobs:
           # Check if the service already exists
           if aws ecs describe-services --cluster $CLUSTER_NAME --services $SERVICE_NAME --query "services[?status == 'ACTIVE'].serviceName" --output text | grep -q $SERVICE_NAME; then
             echo "Service $SERVICE_NAME already exists."
+            aws ecs update-service \
+              --cluster $CLUSTER_NAME \
+              --service $SERVICE_NAME \
+              --force-new-deployment
+            echo "Service $SERVICE_NAME updated and restarted."
           else
             echo "Creating ECS Service $SERVICE_NAME..."
             aws ecs create-service \
@@ -169,3 +174,8 @@ jobs:
               --network-configuration "awsvpcConfiguration={subnets=[$SUBNET_ID],securityGroups=[$SECURITY_GROUP_ID],assignPublicIp=ENABLED}"
             echo "Service $SERVICE_NAME created."
           fi
+
+      - name: Output public IP 
+        run: |
+          CLUSTER_NAME="${{ env.CHANGED_DIRS }}-cluster"
+          aws ecs list-tasks --cluster $CLUSTER_NAME --service-name nginx-service --query "taskArns[0]" --output text | xargs -I {} aws ecs describe-tasks --cluster $CLUSTER_NAME --tasks {} --query "tasks[0].attachments[0].details[?name=='publicIPAddress'].value" --output text
