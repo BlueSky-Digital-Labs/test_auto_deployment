@@ -119,10 +119,12 @@ jobs:
       - name: Register ECS Task Definition for NGINX
         id: register-task
         run: |
+          EXECUTION_ROLE_ARN="arn:aws:iam::128363281216:role/ECS-to-ECR"
           TASK_DEFINITION_JSON=$(cat <<EOF
           {
             "family": "nginx-task",
             "networkMode": "awsvpc",
+            "executionRoleArn": "$EXECUTION_ROLE_ARN",
             "containerDefinitions": [
               {
                 "name": "react",
