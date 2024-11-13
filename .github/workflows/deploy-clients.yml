@@ -21,6 +21,7 @@ jobs:
         run: |
           # Fetch the latest commit
           git fetch origin main
+          changed_dirs=""
 
           # Loop through all directories starting with "client"
           for dir in client*; do
@@ -29,10 +30,13 @@ jobs:
                 echo "$dir was not changed"
               else
                 echo "$dir was changed"
-                echo "##[set-output name=changed_dirs]::$dir"
+                changed_dirs="$changed_dirs $dir"
               fi
             fi
           done
 
-      #- name: Output Changed Directories
-       # run: echo "Changed directories: ${{ steps.check_changes.outputs.changed_dirs }}"
+          echo "CHANGED_DIRS=$changed_dirs" >> $GITHUB_ENV
+
+      - name: Output Changed Directories
+        run: | 
+          echo "Changed directories: ${{ env.CHANGED_DIRS }}"
