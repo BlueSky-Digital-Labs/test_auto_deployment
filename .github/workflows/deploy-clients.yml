@@ -1,0 +1,17 @@
+name: Build, Register, and Deploy to AWS
+
+on:
+  push:
+    branches:
+      - main  # Adjust this as needed
+
+jobs:
+  build-register-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout the repository
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      
