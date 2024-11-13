@@ -103,3 +103,15 @@ jobs:
           docker tag prototype-frontend:latest 128363281216.dkr.ecr.ap-southeast-2.amazonaws.com/${{ env.CHANGED_DIRS }}-react-app:latest
           echo "Pushing React image to ECR..."
           docker push 128363281216.dkr.ecr.ap-southeast-2.amazonaws.com/${{ env.CHANGED_DIRS }}-react-app:latest
+
+      - name: Check if ECS Cluster exists and create if not
+        id: check-cluster
+        run: |
+          CLUSTER_NAME="${{ env.CHANGED_DIRS }}-cluster"
+          if aws ecs describe-clusters --clusters $CLUSTER_NAME --query "clusters[?status == 'ACTIVE'].clusterName" --output text | grep -q $CLUSTER_NAME; then
+            echo "Cluster $CLUSTER_NAME already exists."
+          else
+            echo "Creating ECS Cluster $CLUSTER_NAME..."
+            aws ecs create-cluster --cluster-name $CLUSTER_NAME
+            echo "Cluster $CLUSTER_NAME created."
+          fi
