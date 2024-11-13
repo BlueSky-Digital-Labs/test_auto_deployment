@@ -154,7 +154,7 @@ jobs:
         id: register-task-1
         run: |
           TASK_DEFINITION_NAME="nginx-task"
-          EXECUTION_ROLE_ARN="arn:aws:iam::128363281216:role/ecsInstanceRole"
+          EXECUTION_ROLE_ARN="arn:aws:iam::128363281216:role/ECS-to-ECR"
           ECR_IMAGE_URI="128363281216.dkr.ecr.ap-southeast-2.amazonaws.com/${{ env.CHANGED_DIRS }}-react-app:latest"
 
           # Check if task definition exists
