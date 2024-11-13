@@ -40,3 +40,22 @@ jobs:
       - name: Output Changed Directories
         run: | 
           echo "Changed directories: ${{ env.CHANGED_DIRS }}"
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-southeast-2
+
+      - name: Login to Amazon ECR
+        run: |
+          aws ecr get-login-password --region ap-southeast-2 | docker login --username AWS --password-stdin 128363281216.dkr.ecr.ap-southeast-2.amazonaws.com
+      
+      - name: Build, Tag, and Push Django Image
+        run: |
+          echo "Building Django image..."
+          docker build -t prototype-backend ./${{ env.CHANGED_DIRS }}/backend
+          docker tag prototype-backend:latest 128363281216.dkr.ecr.ap-southeast-2.amazonaws.com/${{ env.CHANGED_DIRS }}-django-app:latest
+          echo "Pushing Django image to ECR..."
+          docker push 128363281216.dkr.ecr.ap-southeast-2.amazonaws.com/${{ env.CHANGED_DIRS }}-django-app:latest
