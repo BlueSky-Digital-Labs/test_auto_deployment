@@ -1,4 +1,4 @@
-name: Build, Register, and Deploy to AWS
+name: Build, Register, and Deploy to AWS ECS
 
 on:
   push:
@@ -33,6 +33,6 @@ jobs:
               fi
             fi
           done
-          
+
       - name: Output Changed Directories
         run: echo "Changed directories: ${{ steps.check_changes.outputs.changed_dirs }}"
