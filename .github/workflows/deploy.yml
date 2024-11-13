@@ -3,7 +3,7 @@ name: Build, Register, and Deploy to AWS
 on:
   push:
     branches:
-      - main  # Adjust this as needed
+      - main-test  # Adjust this as needed
 
 jobs:
   build-register-deploy:
