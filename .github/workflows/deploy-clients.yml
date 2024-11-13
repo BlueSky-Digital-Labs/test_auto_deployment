@@ -49,7 +49,7 @@ jobs:
           aws-region: ap-southeast-2
 
       - name: Check if ECR Repository Exists and Create if Not
-        id: create_ecr_repo
+        id: create_ecr_repo_backend
         shell: bash
         run: |
           REPO_NAME="${{ env.CHANGED_DIRS }}-django-app"  # Replace with your desired repository name
@@ -77,3 +77,29 @@ jobs:
           docker tag prototype-backend:latest 128363281216.dkr.ecr.ap-southeast-2.amazonaws.com/${{ env.CHANGED_DIRS }}-django-app:latest
           echo "Pushing Django image to ECR..."
           docker push 128363281216.dkr.ecr.ap-southeast-2.amazonaws.com/${{ env.CHANGED_DIRS }}-django-app:latest
+
+      - name: Check if ECR Repository Exists and Create if Not
+        id: create_ecr_repo_frontend
+        shell: bash
+        run: |
+          REPO_NAME="${{ env.CHANGED_DIRS }}-react-app"  # Replace with your desired repository name
+          REGION="ap-southeast-2"  # Default region if not set in secrets
+
+          # Check if the repository exists
+          EXISTING_REPO=$(aws ecr describe-repositories --repository-names "$REPO_NAME" --query "repositories[0].repositoryName" --output text 2>/dev/null || true)
+
+          if [ "$EXISTING_REPO" != "$REPO_NAME" ]; then
+            echo "Repository '$REPO_NAME' does not exist. Creating..."
+            aws ecr create-repository --repository-name "$REPO_NAME"
+            echo "Repository '$REPO_NAME' created successfully."
+          else
+            echo "Repository '$REPO_NAME' already exists."
+          fi
+
+      - name: Build, Tag, and Push React Image
+        run: |
+          echo "Building React image..."
+          docker build -t prototype-frontend ./${{ env.CHANGED_DIRS }}/frontend
+          docker tag prototype-frontend:latest 128363281216.dkr.ecr.ap-southeast-2.amazonaws.com/${{ env.CHANGED_DIRS }}-react-app:latest
+          echo "Pushing React image to ECR..."
+          docker push 128363281216.dkr.ecr.ap-southeast-2.amazonaws.com/${{ env.CHANGED_DIRS }}-react-app:latest
