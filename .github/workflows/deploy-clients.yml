@@ -119,7 +119,7 @@ jobs:
       - name: Register ECS Task Definition for Frontend
         id: register-frontend-task
         run: |
-          TASK_DEFINITION_NAME="frontend-task"
+          TASK_DEFINITION_NAME="${{ env.CHANGED_DIRS }}-frontend-task"
           EXECUTION_ROLE_ARN="arn:aws:iam::128363281216:role/ECS-to-ECR"
           TASK_DEFINITION_JSON=$(cat <<EOF
           {
@@ -154,7 +154,7 @@ jobs:
       - name: Register or Update ECS Task Definition for NGINX
         id: register-task-1
         run: |
-          TASK_DEFINITION_NAME="frontend-task"
+          TASK_DEFINITION_NAME="${{ env.CHANGED_DIRS }}-frontend-task"
           EXECUTION_ROLE_ARN="arn:aws:iam::128363281216:role/ECS-to-ECR"
           ECR_IMAGE_URI="128363281216.dkr.ecr.ap-southeast-2.amazonaws.com/${{ env.CHANGED_DIRS }}-react-app:latest"
 
@@ -242,7 +242,7 @@ jobs:
       - name: Register ECS Task Definition for Backend
         id: register-task
         run: |
-          TASK_DEFINITION_NAME="backend-task"
+          TASK_DEFINITION_NAME="${{ env.CHANGED_DIRS }}-backend-task"
           EXECUTION_ROLE_ARN="arn:aws:iam::128363281216:role/ECS-to-ECR"
           BACKEND_TASK_DEFINITION_JSON=$(cat <<EOF
           {
@@ -277,7 +277,7 @@ jobs:
       - name: Register or Update ECS Task Definition for NGINX
         id: register-backend-task
         run: |
-          TASK_DEFINITION_NAME="backend-task"
+          TASK_DEFINITION_NAME="${{ env.CHANGED_DIRS }}-backend-task"
           EXECUTION_ROLE_ARN="arn:aws:iam::128363281216:role/ECS-to-ECR"
           ECR_IMAGE_URI="128363281216.dkr.ecr.ap-southeast-2.amazonaws.com/${{ env.CHANGED_DIRS }}-django-app:latest"
 
