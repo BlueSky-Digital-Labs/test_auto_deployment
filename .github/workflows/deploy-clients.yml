@@ -12,6 +12,27 @@ jobs:
     steps:
       # Step 1: Checkout the repository
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 5
 
-      
+      - name: Find Modified Directories
+        id: check_changes
+        run: |
+          # Fetch the latest commit
+          git fetch origin main
+
+          # Loop through all directories starting with "client"
+          for dir in client*; do
+            if [ -d "$dir" ]; then  # Check if directory exists
+              if git diff --quiet HEAD^ HEAD -- "$dir"; then
+                echo "$dir was not changed"
+              else
+                echo "$dir was changed"
+                echo "##[set-output name=changed_dirs]::$dir"
+              fi
+            fi
+          done
+          
+      - name: Output Changed Directories
+        run: echo "Changed directories: ${{ steps.check_changes.outputs.changed_dirs }}"
