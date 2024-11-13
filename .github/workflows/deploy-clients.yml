@@ -30,7 +30,7 @@ jobs:
                 echo "$dir was not changed"
               else
                 echo "$dir was changed"
-                changed_dirs="$changed_dirs $dir"
+                changed_dirs="$dir"
               fi
             fi
           done
