@@ -52,7 +52,7 @@ jobs:
         id: create_ecr_repo
         shell: bash
         run: |
-          REPO_NAME=${{ env.CHANGED_DIRS }}  # Replace with your desired repository name
+          REPO_NAME="${{ env.CHANGED_DIRS }}-django-app"  # Replace with your desired repository name
           REGION="ap-southeast-2"  # Default region if not set in secrets
 
           # Check if the repository exists
