@@ -151,7 +151,7 @@ jobs:
           echo "$TASK_DEFINITION_JSON" > task-definition.json
           aws ecs register-task-definition --cli-input-json file://task-definition.json
 
-      - name: Register or Update ECS Task Definition for NGINX
+      - name: Register or Update ECS Task Definition for Frontend
         id: register-task-1
         run: |
           TASK_DEFINITION_NAME="${{ env.CHANGED_DIRS }}-frontend-task"
