@@ -151,7 +151,7 @@ jobs:
           echo "$TASK_DEFINITION_JSON" > task-definition.json
           aws ecs register-task-definition --cli-input-json file://task-definition.json
 
-      - name: Register or Update ECS Task Definition for NGINX
+      - name: Register or Update ECS Task Definition for Frontend
         id: register-task-1
         run: |
           TASK_DEFINITION_NAME="${{ env.CHANGED_DIRS }}-frontend-task"
@@ -173,40 +173,6 @@ jobs:
             echo "$UPDATED_TASK_DEF" > updated-task-def.json
             NEW_TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json file://updated-task-def.json --query "taskDefinition.taskDefinitionArn" --output text)
             echo "New Task Definition Revision ARN: $NEW_TASK_DEF_ARN"
-          # else
-          #   echo "Task definition $TASK_DEFINITION_NAME does not exist. Creating new task definition..."
-            
-          #   # Define and register a new task definition
-          #   TASK_DEFINITION_JSON=$(cat <<EOF
-          #   {
-          #     "family": "$TASK_DEFINITION_NAME",
-          #     "networkMode": "awsvpc",
-          #     "containerDefinitions": [
-          #       {
-          #         "name": "nginx",
-          #         "image": "$ECR_IMAGE_URI",
-          #         "memory": 512,
-          #         "cpu": 256,
-          #         "essential": true,
-          #         "portMappings": [
-          #           {
-          #             "containerPort": 80,
-          #             "hostPort": 80,
-          #             "protocol": "tcp"
-          #           }
-          #         ]
-          #       }
-          #     ],
-          #     "requiresCompatibilities": ["FARGATE"],
-          #     "cpu": "256",
-          #     "memory": "512",
-          #     "executionRoleArn": "$EXECUTION_ROLE_ARN"
-          #   }
-          #   EOF
-          #   )
-          #   echo "$TASK_DEFINITION_JSON" > task-definition.json
-          #   NEW_TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json file://task-definition.json --query "taskDefinition.taskDefinitionArn" --output text)
-          #   echo "New Task Definition Created ARN: $NEW_TASK_DEF_ARN"
           fi
           echo "new_task_definition_arn=$NEW_TASK_DEF_ARN" >> $GITHUB_ENV
 
@@ -274,7 +240,7 @@ jobs:
           echo "$BACKEND_TASK_DEFINITION_JSON" > task-definition.json
           aws ecs register-task-definition --cli-input-json file://task-definition.json
       
-      - name: Register or Update ECS Task Definition for NGINX
+      - name: Register or Update ECS Task Definition for backend
         id: register-backend-task
         run: |
           TASK_DEFINITION_NAME="${{ env.CHANGED_DIRS }}-backend-task"
@@ -296,40 +262,6 @@ jobs:
             echo "$UPDATED_TASK_DEF" > updated-task-def.json
             NEW_TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json file://updated-task-def.json --query "taskDefinition.taskDefinitionArn" --output text)
             echo "New Task Definition Revision ARN: $NEW_TASK_DEF_ARN"
-          # else
-          #   echo "Task definition $TASK_DEFINITION_NAME does not exist. Creating new task definition..."
-            
-          #   # Define and register a new task definition
-          #   TASK_DEFINITION_JSON=$(cat <<EOF
-          #   {
-          #     "family": "$TASK_DEFINITION_NAME",
-          #     "networkMode": "awsvpc",
-          #     "containerDefinitions": [
-          #       {
-          #         "name": "nginx",
-          #         "image": "$ECR_IMAGE_URI",
-          #         "memory": 512,
-          #         "cpu": 256,
-          #         "essential": true,
-          #         "portMappings": [
-          #           {
-          #             "containerPort": 80,
-          #             "hostPort": 80,
-          #             "protocol": "tcp"
-          #           }
-          #         ]
-          #       }
-          #     ],
-          #     "requiresCompatibilities": ["FARGATE"],
-          #     "cpu": "256",
-          #     "memory": "512",
-          #     "executionRoleArn": "$EXECUTION_ROLE_ARN"
-          #   }
-          #   EOF
-          #   )
-          #   echo "$TASK_DEFINITION_JSON" > task-definition.json
-          #   NEW_TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json file://task-definition.json --query "taskDefinition.taskDefinitionArn" --output text)
-          #   echo "New Task Definition Created ARN: $NEW_TASK_DEF_ARN"
           fi
           echo "backend_new_task_definition_arn=$NEW_TASK_DEF_ARN" >> $GITHUB_ENV
 
