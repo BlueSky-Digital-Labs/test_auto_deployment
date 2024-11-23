@@ -120,33 +120,57 @@ jobs:
             echo "Elastic IP already exists with Allocation ID: $EXISTING_EIP_ALLOCATION_ID"
             echo "::set-output name=eip_allocation_id::$EXISTING_EIP_ALLOCATION_ID"
           fi
-      - name: Create NLB and associate Elastic IP
+
+      - name: Allocate Elastic IP if not exists For Frontend
+        id: frontend-interface
         run: |
-          NLB_NAME="${{ env.CHANGED_DIRS }}-ecs-nlb"
-          SUBNETS="subnet-aff804e7" 
-          EIP_ALLOCATION_ID="${{ steps.allocate-eip-frontend.outputs.eip_allocation_id }}"
+          SUBNET_ID="subnet-aff804e7"
+          SECURITY_GROUP_ID="sg-6fdda027"  
 
-          # Check if NLB already exists
-          NLB_ARN=$(aws elbv2 describe-load-balancers --names "$NLB_NAME" --query "LoadBalancers[0].LoadBalancerArn" --output text 2>/dev/null || echo "None")
-          if [ "$NLB_ARN" == "None" ]; then
-            echo "Creating NLB $NLB_NAME..."
-            NLB_ARN=$(aws elbv2 create-load-balancer \
-              --name $NLB_NAME \
-              --subnets $SUBNETS \
-              --type network \
-              --scheme internet-facing \
-              --ip-address-type ipv4 \
-              --query "LoadBalancers[0].LoadBalancerArn" \
-              --output text)
-            echo "NLB created with ARN: $NLB_ARN"
-          else
-            echo "NLB $NLB_NAME already exists with ARN: $NLB_ARN"
-          fi
+          ENI_ID=$(aws ec2 create-network-interface \
+            --subnet-id $SUBNET_ID \
+            --groups $SECURITY_GROUP_ID \
+            --associate-public-ip-address \
+            --query 'NetworkInterface.NetworkInterfaceId' \
+            --output text)
 
-          echo "Associate Elastic IP with NLB's primary network interface"
-          NLB_ENI=$(aws ec2 describe-network-interfaces --filters "Name=description,Values=*Network Load Balancer $NLB_NAME*" --query "NetworkInterfaces[0].NetworkInterfaceId" --output text)
-          aws ec2 associate-address --allocation-id "$EIP_ALLOCATION_ID" --network-interface-id "$NLB_ENI"
-          echo "Elastic IP associated with NLB ENI $NLB_ENI."
+          PRIVATE_IP_ADDRESS=$(aws ec2 describe-network-interfaces \
+            --network-interface-ids $ENI_ID \
+            --query 'NetworkInterfaces[0].PrivateIpAddresses[0].PrivateIpAddress' \
+            --output text)
+
+          aws ec2 associate-address \
+            --allocation-id ${{ steps.allocate-eip-frontend.outputs.eip_allocation_id }} \
+            --network-interface-id $ENI_ID \
+            --private-ip-address $PRIVATE_IP_ADDRESS
+
+      # - name: Create NLB and associate Elastic IP
+      #   run: |
+      #     NLB_NAME="${{ env.CHANGED_DIRS }}-ecs-nlb"
+      #     SUBNETS="subnet-aff804e7" 
+      #     EIP_ALLOCATION_ID="${{ steps.allocate-eip-frontend.outputs.eip_allocation_id }}"
+
+      #     # Check if NLB already exists
+      #     NLB_ARN=$(aws elbv2 describe-load-balancers --names "$NLB_NAME" --query "LoadBalancers[0].LoadBalancerArn" --output text 2>/dev/null || echo "None")
+      #     if [ "$NLB_ARN" == "None" ]; then
+      #       echo "Creating NLB $NLB_NAME..."
+      #       NLB_ARN=$(aws elbv2 create-load-balancer \
+      #         --name $NLB_NAME \
+      #         --subnets $SUBNETS \
+      #         --type network \
+      #         --scheme internet-facing \
+      #         --ip-address-type ipv4 \
+      #         --query "LoadBalancers[0].LoadBalancerArn" \
+      #         --output text)
+      #       echo "NLB created with ARN: $NLB_ARN"
+      #     else
+      #       echo "NLB $NLB_NAME already exists with ARN: $NLB_ARN"
+      #     fi
+
+      #     echo "Associate Elastic IP with NLB's primary network interface"
+      #     NLB_ENI=$(aws ec2 describe-network-interfaces --filters "Name=description,Values=*Network Load Balancer $NLB_NAME*" --query "NetworkInterfaces[0].NetworkInterfaceId" --output text)
+      #     aws ec2 associate-address --allocation-id "$EIP_ALLOCATION_ID" --network-interface-id "$NLB_ENI"
+      #     echo "Elastic IP associated with NLB ENI $NLB_ENI."
 
       # - name: Fetch Load Balancer and Target Group Details
       #   id: fetch-lb-details
@@ -331,7 +355,7 @@ jobs:
           fi
           echo "backend_new_task_definition_arn=$NEW_TASK_DEF_ARN" >> $GITHUB_ENV
 
-      - name: Create ECS Service for Frontend
+      - name: Create ECS Service for Backend
         run: |
           CLUSTER_NAME="${{ env.CHANGED_DIRS }}-cluster"
           SERVICE_NAME="backend-service"
