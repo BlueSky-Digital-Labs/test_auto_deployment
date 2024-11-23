@@ -198,14 +198,14 @@ jobs:
           fi
 
           TARGET_GROUP_NAME="${{ env.CHANGED_DIRS }}-target-group"
-          TARGET_GROUP_ARN=$(aws elbv2 describe-target-groups \
-            --names $TARGET_GROUP_NAME \
-            --query 'TargetGroups[0].TargetGroupArn' \
-            --output text 2>&1)
+          # TARGET_GROUP_ARN=$(aws elbv2 describe-target-groups \
+          #   --names $TARGET_GROUP_NAME \
+          #   --query 'TargetGroups[0].TargetGroupArn' \
+          #   --output text 2>&1)
           
-          echo $TARGET_GROUP_ARN
+          # echo $TARGET_GROUP_ARN
 
-          if echo "$TARGET_GROUP_ARN" | grep -q "TargetGroupNotFound"; then
+          # if echo "$TARGET_GROUP_ARN" | grep -q "TargetGroupNotFound"; then
             echo "Creating Target Group for NLB..."
             TARGET_GROUP_ARN=$(aws elbv2 create-target-group \
               --name $TARGET_GROUP_NAME \
@@ -215,9 +215,9 @@ jobs:
               --query 'TargetGroups[0].TargetGroupArn' \
               --output text)
             echo "Target Group $TARGET_GROUP_NAME created with ARN: $TARGET_GROUP_ARN"
-          else
-            echo "Target Group $TARGET_GROUP_NAME already exists with ARN: $TARGET_GROUP_ARN"
-          fi
+          # else
+          #   echo "Target Group $TARGET_GROUP_NAME already exists with ARN: $TARGET_GROUP_ARN"
+          # fi
 
           echo "TARGET_GROUP_ARN=$TARGET_GROUP_ARN" >> $GITHUB_ENV
 
