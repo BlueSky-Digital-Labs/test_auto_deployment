@@ -70,13 +70,13 @@ jobs:
         run: |
           aws ecr get-login-password --region ap-southeast-2 | docker login --username AWS --password-stdin 128363281216.dkr.ecr.ap-southeast-2.amazonaws.com
       
-      # - name: Build, Tag, and Push Django Image
-      #   run: |
-      #     echo "Building Django image..."
-      #     docker build -t prototype-backend ./${{ env.CHANGED_DIRS }}/backend
-      #     docker tag prototype-backend:latest 128363281216.dkr.ecr.ap-southeast-2.amazonaws.com/${{ env.CHANGED_DIRS }}-django-app:latest
-      #     echo "Pushing Django image to ECR..."
-      #     docker push 128363281216.dkr.ecr.ap-southeast-2.amazonaws.com/${{ env.CHANGED_DIRS }}-django-app:latest
+      - name: Build, Tag, and Push Django Image
+        run: |
+          echo "Building Django image..."
+          docker build -t prototype-backend ./${{ env.CHANGED_DIRS }}/backend
+          docker tag prototype-backend:latest 128363281216.dkr.ecr.ap-southeast-2.amazonaws.com/${{ env.CHANGED_DIRS }}-django-app:latest
+          echo "Pushing Django image to ECR..."
+          docker push 128363281216.dkr.ecr.ap-southeast-2.amazonaws.com/${{ env.CHANGED_DIRS }}-django-app:latest
 
       - name: Check if ECR Repository Exists and Create if Not
         id: create_ecr_repo_frontend
@@ -96,13 +96,13 @@ jobs:
             echo "Repository '$REPO_NAME' already exists."
           fi
 
-      # - name: Build, Tag, and Push React Image
-      #   run: |
-      #     echo "Building React image..."
-      #     docker build -t prototype-frontend ./${{ env.CHANGED_DIRS }}/frontend
-      #     docker tag prototype-frontend:latest 128363281216.dkr.ecr.ap-southeast-2.amazonaws.com/${{ env.CHANGED_DIRS }}-react-app:latest
-      #     echo "Pushing React image to ECR..."
-      #     docker push 128363281216.dkr.ecr.ap-southeast-2.amazonaws.com/${{ env.CHANGED_DIRS }}-react-app:latest
+      - name: Build, Tag, and Push React Image
+        run: |
+          echo "Building React image..."
+          docker build -t prototype-frontend ./${{ env.CHANGED_DIRS }}/frontend
+          docker tag prototype-frontend:latest 128363281216.dkr.ecr.ap-southeast-2.amazonaws.com/${{ env.CHANGED_DIRS }}-react-app:latest
+          echo "Pushing React image to ECR..."
+          docker push 128363281216.dkr.ecr.ap-southeast-2.amazonaws.com/${{ env.CHANGED_DIRS }}-react-app:latest
 
       - name: Allocate Elastic IP if not exists For Frontend
         id: allocate-eip-frontend
@@ -164,106 +164,6 @@ jobs:
           fi
                 
           echo "ENI_ID=$ENI_ID" >> $GITHUB_ENV
-
-      - name: Create NLB and associate Elastic IP
-        run: |
-          NLB_NAME="${{ env.CHANGED_DIRS }}-ecs-nlb"
-          SUBNETS="subnet-aff804e7" 
-          VPC_ID="vpc-bf8893d8"
-          SECURITY_GROUP_ID="sg-6fdda027"
-          EIP_ALLOCATION_ID="${{ steps.allocate-eip-frontend.outputs.eip_allocation_id }}"
-
-          NLB_ARN=$(aws elbv2 describe-load-balancers \
-            --names $NLB_NAME \
-            --query 'LoadBalancers[0].LoadBalancerArn' \
-            --output text)
-          
-          echo $NLB_ARN
-
-          # If NLB doesn't exist, create it
-          if [ "$NLB_ARN" == "None" ]; then
-            echo "Creating Network Load Balancer..."
-            NLB_ARN=$(aws elbv2 create-load-balancer \
-              --name $NLB_NAME \
-              --subnets $SUBNETS \
-              --security-groups $SECURITY_GROUP_ID \
-              --scheme internet-facing \
-              --load-balancer-type network \
-              --ip-address-type ipv4 \
-              --query 'LoadBalancers[0].LoadBalancerArn' \
-              --output text)
-            echo "Network Load Balancer $NLB_NAME created with ARN: $NLB_ARN"
-          else
-            echo "Network Load Balancer $NLB_NAME already exists with ARN: $NLB_ARN"
-          fi
-
-          TARGET_GROUP_NAME="${{ env.CHANGED_DIRS }}-target-group"
-          # TARGET_GROUP_ARN=$(aws elbv2 describe-target-groups \
-          #   --names $TARGET_GROUP_NAME \
-          #   --query 'TargetGroups[0].TargetGroupArn' \
-          #   --output text 2>&1)
-          
-          # echo $TARGET_GROUP_ARN
-
-          # if echo "$TARGET_GROUP_ARN" | grep -q "TargetGroupNotFound"; then
-            echo "Creating Target Group for NLB..."
-            TARGET_GROUP_ARN=$(aws elbv2 create-target-group \
-              --name $TARGET_GROUP_NAME \
-              --protocol TCP \
-              --port 80 \
-              --vpc-id $VPC_ID \
-              --query 'TargetGroups[0].TargetGroupArn' \
-              --output text)
-            echo "Target Group $TARGET_GROUP_NAME created with ARN: $TARGET_GROUP_ARN"
-          # else
-          #   echo "Target Group $TARGET_GROUP_NAME already exists with ARN: $TARGET_GROUP_ARN"
-          # fi
-
-          echo "TARGET_GROUP_ARN=$TARGET_GROUP_ARN" >> $GITHUB_ENV
-
-          # # Check if NLB already exists
-          # NLB_ARN=$(aws elbv2 describe-load-balancers --names "$NLB_NAME" --query "LoadBalancers[0].LoadBalancerArn" --output text 2>/dev/null || echo "None")
-          # if [ "$NLB_ARN" == "None" ]; then
-          #   echo "Creating NLB $NLB_NAME..."
-          #   NLB_ARN=$(aws elbv2 create-load-balancer \
-          #     --name $NLB_NAME \
-          #     --subnets $SUBNETS \
-          #     --type network \
-          #     --scheme internet-facing \
-          #     --ip-address-type ipv4 \
-          #     --query "LoadBalancers[0].LoadBalancerArn" \
-          #     --output text)
-          #   echo "NLB created with ARN: $NLB_ARN"
-          # else
-          #   echo "NLB $NLB_NAME already exists with ARN: $NLB_ARN"
-          # fi
-
-          # echo "Associate Elastic IP with NLB's primary network interface"
-          # NLB_ENI=$(aws ec2 describe-network-interfaces --filters "Name=description,Values=*Network Load Balancer $NLB_NAME*" --query "NetworkInterfaces[0].NetworkInterfaceId" --output text)
-          # aws ec2 associate-address --allocation-id "$EIP_ALLOCATION_ID" --network-interface-id "$NLB_ENI"
-          # echo "Elastic IP associated with NLB ENI $NLB_ENI."
-
-      # - name: Fetch Load Balancer and Target Group Details
-      #   id: fetch-lb-details
-      #   run: |
-      #     NLB_NAME="${{ env.CHANGED_DIRS }}-ecs-nlb"
-      #     TARGET_GROUP_NAME="ecs-target-group"
-      
-      #     # Fetch Load Balancer ARN
-      #     LOAD_BALANCER_ARN=$(aws elbv2 describe-load-balancers \
-      #         --names "$NLB_NAME" \
-      #         --query "LoadBalancers[0].LoadBalancerArn" \
-      #         --output text)
-      #     echo "Load Balancer ARN: $LOAD_BALANCER_ARN"
-      #     echo "::set-output name=load_balancer_arn::$LOAD_BALANCER_ARN"
-      
-      #     # Fetch Target Group ARN
-      #     TARGET_GROUP_ARN=$(aws elbv2 describe-target-groups \
-      #         --names "$TARGET_GROUP_NAME" \
-      #         --query "TargetGroups[0].TargetGroupArn" \
-      #         --output text)
-      #     echo "Target Group ARN: $TARGET_GROUP_ARN"
-      #     echo "::set-output name=target_group_arn::$TARGET_GROUP_ARN"
 
       - name: Check if ECS Cluster exists and create if not
         id: check-cluster
@@ -365,7 +265,7 @@ jobs:
               --desired-count 1 \
               --launch-type FARGATE \
               --network-configuration "awsvpcConfiguration={subnets=[$SUBNET_ID],securityGroups=[$SECURITY_GROUP_ID],assignPublicIp=ENABLED}" \
-              --load-balancers "targetGroupArn=${{ env.TARGET_GROUP_ARN }},containerName=$CONTAINER_NAME,containerPort=$CONTAINER_PORT"
+              # --load-balancers "targetGroupArn=${{ env.TARGET_GROUP_ARN }},containerName=$CONTAINER_NAME,containerPort=$CONTAINER_PORT"
             echo "Service $SERVICE_NAME created."
           fi
       
