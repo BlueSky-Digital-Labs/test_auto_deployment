@@ -198,12 +198,12 @@ jobs:
           fi
 
           TARGET_GROUP_NAME="${{ env.CHANGED_DIRS }}-target-group"
-          TARGET_GROUP_ARN=$(aws elbv2 describe-target-groups \
-            --names $TARGET_GROUP_NAME \
-            --query 'TargetGroups[0].TargetGroupArn' \
-            --output text 2>&1)
+          # TARGET_GROUP_ARN=$(aws elbv2 describe-target-groups \
+          #   --names $TARGET_GROUP_NAME \
+          #   --query 'TargetGroups[0].TargetGroupArn' \
+          #   --output text 2>&1)
           
-          echo $TARGET_GROUP_NAME
+          # echo $TARGET_GROUP_ARN
 
           if echo "$TARGET_GROUP_ARN" | grep -q "TargetGroupNotFound"; then
             echo "Creating Target Group for NLB..."
