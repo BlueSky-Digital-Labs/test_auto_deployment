@@ -169,6 +169,7 @@ jobs:
         run: |
           NLB_NAME="${{ env.CHANGED_DIRS }}-ecs-nlb"
           SUBNETS="subnet-aff804e7" 
+          VPC_ID="vpc-bf8893d8"
           SECURITY_GROUP_ID="sg-6fdda027"
           EIP_ALLOCATION_ID="${{ steps.allocate-eip-frontend.outputs.eip_allocation_id }}"
 
@@ -200,9 +201,9 @@ jobs:
           TARGET_GROUP_ARN=$(aws elbv2 describe-target-groups \
             --names $TARGET_GROUP_NAME \
             --query 'TargetGroups[0].TargetGroupArn' \
-            --output text)
+            --output text 2>&1)
 
-          if [ "$TARGET_GROUP_ARN" == "None" ]; then
+          if echo "$TARGET_GROUP_ARN" | grep -q "TargetGroupNotFound"; then
             echo "Creating Target Group for NLB..."
             TARGET_GROUP_ARN=$(aws elbv2 create-target-group \
               --name $TARGET_GROUP_NAME \
