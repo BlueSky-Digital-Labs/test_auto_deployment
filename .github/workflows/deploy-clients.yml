@@ -121,7 +121,7 @@ jobs:
             echo "::set-output name=eip_allocation_id::$EXISTING_EIP_ALLOCATION_ID"
           fi
 
-      - name: Allocate Elastic IP if not exists For Frontend
+      - name: Allocate Network Interface if not exists For Frontend
         id: frontend-interface
         run: |
           SUBNET_ID="subnet-aff804e7"
@@ -143,16 +143,26 @@ jobs:
             echo "ENI already exists with ID: $ENI_ID"
           fi
 
-          PRIVATE_IP_ADDRESS=$(aws ec2 describe-network-interfaces \
-            --network-interface-ids $ENI_ID \
-            --query 'NetworkInterfaces[0].PrivateIpAddresses[0].PrivateIpAddress' \
+          EIP_ALLOCATION_ID=$(aws ec2 describe-addresses \
+            --query "Addresses[?NetworkInterfaceId=='$ENI_ID'].AllocationId" \
             --output text)
 
-          aws ec2 associate-address \
-            --allocation-id ${{ steps.allocate-eip-frontend.outputs.eip_allocation_id }} \
-            --network-interface-id $ENI_ID \
-            --private-ip-address $PRIVATE_IP_ADDRESS
-          
+          if [[ "$EIP_ALLOCATION_ID" == "None" ]]; then
+
+            PRIVATE_IP_ADDRESS=$(aws ec2 describe-network-interfaces \
+              --network-interface-ids $ENI_ID \
+              --query 'NetworkInterfaces[0].PrivateIpAddresses[0].PrivateIpAddress' \
+              --output text)
+
+            aws ec2 associate-address \
+              --allocation-id ${{ steps.allocate-eip-frontend.outputs.eip_allocation_id }} \
+              --network-interface-id $ENI_ID \
+              --private-ip-address $PRIVATE_IP_ADDRESS
+             echo "Elastic IP $EIP_ALLOCATION_ID associated with ENI $ENI_ID"
+          else
+            echo "Elastic IP already exists with Allocation ID: $EIP_ALLOCATION_ID"
+          fi
+                
           echo "ENI_ID=$ENI_ID" >> $GITHUB_ENV
 
       # - name: Create NLB and associate Elastic IP
