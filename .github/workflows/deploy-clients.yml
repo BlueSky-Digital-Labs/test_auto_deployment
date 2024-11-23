@@ -198,12 +198,12 @@ jobs:
           fi
 
           TARGET_GROUP_NAME="${{ env.CHANGED_DIRS }}-target-group"
-          # TARGET_GROUP_ARN=$(aws elbv2 describe-target-groups \
-          #   --names $TARGET_GROUP_NAME \
-          #   --query 'TargetGroups[0].TargetGroupArn' \
-          #   --output text 2>&1)
+          TARGET_GROUP_ARN=$(aws elbv2 describe-target-groups \
+            --names $TARGET_GROUP_NAME \
+            --query 'TargetGroups[0].TargetGroupArn' \
+            --output text 2>&1)
           
-          # echo $TARGET_GROUP_ARN
+          echo $TARGET_GROUP_ARN
 
           if echo "$TARGET_GROUP_ARN" | grep -q "TargetGroupNotFound"; then
             echo "Creating Target Group for NLB..."
@@ -364,7 +364,7 @@ jobs:
               --task-definition $NEW_TASK_DEF_ARN \
               --desired-count 1 \
               --launch-type FARGATE \
-              --network-configuration "awsvpcConfiguration={subnets=[$SUBNET_ID],securityGroups=[$SECURITY_GROUP_ID],assignPublicIp=ENABLED}"
+              --network-configuration "awsvpcConfiguration={subnets=[$SUBNET_ID],securityGroups=[$SECURITY_GROUP_ID],assignPublicIp=ENABLED}" \
               --load-balancers "targetGroupArn=${{ env.TARGET_GROUP_ARN }},containerName=$CONTAINER_NAME,containerPort=$CONTAINER_PORT"
             echo "Service $SERVICE_NAME created."
           fi
