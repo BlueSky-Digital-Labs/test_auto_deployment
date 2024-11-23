@@ -143,7 +143,7 @@ jobs:
             echo "NLB $NLB_NAME already exists with ARN: $NLB_ARN"
           fi
 
-          # Associate Elastic IP with NLB's primary network interface
+          echo "Associate Elastic IP with NLB's primary network interface"
           NLB_ENI=$(aws ec2 describe-network-interfaces --filters "Name=description,Values=*Network Load Balancer $NLB_NAME*" --query "NetworkInterfaces[0].NetworkInterfaceId" --output text)
           aws ec2 associate-address --allocation-id "$EIP_ALLOCATION_ID" --network-interface-id "$NLB_ENI"
           echo "Elastic IP associated with NLB ENI $NLB_ENI."
