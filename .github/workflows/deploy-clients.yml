@@ -202,6 +202,8 @@ jobs:
             --names $TARGET_GROUP_NAME \
             --query 'TargetGroups[0].TargetGroupArn' \
             --output text 2>&1)
+          
+          echo $TARGET_GROUP_NAME
 
           if echo "$TARGET_GROUP_ARN" | grep -q "TargetGroupNotFound"; then
             echo "Creating Target Group for NLB..."
