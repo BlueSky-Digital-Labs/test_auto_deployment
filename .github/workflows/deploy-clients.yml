@@ -165,33 +165,78 @@ jobs:
                 
           echo "ENI_ID=$ENI_ID" >> $GITHUB_ENV
 
-      # - name: Create NLB and associate Elastic IP
-      #   run: |
-      #     NLB_NAME="${{ env.CHANGED_DIRS }}-ecs-nlb"
-      #     SUBNETS="subnet-aff804e7" 
-      #     EIP_ALLOCATION_ID="${{ steps.allocate-eip-frontend.outputs.eip_allocation_id }}"
+      - name: Create NLB and associate Elastic IP
+        run: |
+          NLB_NAME="${{ env.CHANGED_DIRS }}-ecs-nlb"
+          SUBNETS="subnet-aff804e7" 
+          SECURITY_GROUP_ID="sg-6fdda027"
+          EIP_ALLOCATION_ID="${{ steps.allocate-eip-frontend.outputs.eip_allocation_id }}"
 
-      #     # Check if NLB already exists
-      #     NLB_ARN=$(aws elbv2 describe-load-balancers --names "$NLB_NAME" --query "LoadBalancers[0].LoadBalancerArn" --output text 2>/dev/null || echo "None")
-      #     if [ "$NLB_ARN" == "None" ]; then
-      #       echo "Creating NLB $NLB_NAME..."
-      #       NLB_ARN=$(aws elbv2 create-load-balancer \
-      #         --name $NLB_NAME \
-      #         --subnets $SUBNETS \
-      #         --type network \
-      #         --scheme internet-facing \
-      #         --ip-address-type ipv4 \
-      #         --query "LoadBalancers[0].LoadBalancerArn" \
-      #         --output text)
-      #       echo "NLB created with ARN: $NLB_ARN"
-      #     else
-      #       echo "NLB $NLB_NAME already exists with ARN: $NLB_ARN"
-      #     fi
+          NLB_ARN=$(aws elbv2 describe-load-balancers \
+            --names $NLB_NAME \
+            --query 'LoadBalancers[0].LoadBalancerArn' \
+            --output text)
 
-      #     echo "Associate Elastic IP with NLB's primary network interface"
-      #     NLB_ENI=$(aws ec2 describe-network-interfaces --filters "Name=description,Values=*Network Load Balancer $NLB_NAME*" --query "NetworkInterfaces[0].NetworkInterfaceId" --output text)
-      #     aws ec2 associate-address --allocation-id "$EIP_ALLOCATION_ID" --network-interface-id "$NLB_ENI"
-      #     echo "Elastic IP associated with NLB ENI $NLB_ENI."
+          # If NLB doesn't exist, create it
+          if [ "$NLB_ARN" == "None" ]; then
+            echo "Creating Network Load Balancer..."
+            NLB_ARN=$(aws elbv2 create-load-balancer \
+              --name $NLB_NAME \
+              --subnets $SUBNETS \
+              --security-groups $SECURITY_GROUP_ID \
+              --scheme internet-facing \
+              --load-balancer-type network \
+              --ip-address-type ipv4 \
+              --query 'LoadBalancers[0].LoadBalancerArn' \
+              --output text)
+            echo "Network Load Balancer $NLB_NAME created with ARN: $NLB_ARN"
+          else
+            echo "Network Load Balancer $NLB_NAME already exists with ARN: $NLB_ARN"
+          fi
+
+          TARGET_GROUP_NAME="${{ env.CHANGED_DIRS }}-target-group"
+          TARGET_GROUP_ARN=$(aws elbv2 describe-target-groups \
+            --names $TARGET_GROUP_NAME \
+            --query 'TargetGroups[0].TargetGroupArn' \
+            --output text)
+
+          if [ "$TARGET_GROUP_ARN" == "None" ]; then
+            echo "Creating Target Group for NLB..."
+            TARGET_GROUP_ARN=$(aws elbv2 create-target-group \
+              --name $TARGET_GROUP_NAME \
+              --protocol TCP \
+              --port 80 \
+              --vpc-id $VPC_ID \
+              --query 'TargetGroups[0].TargetGroupArn' \
+              --output text)
+            echo "Target Group $TARGET_GROUP_NAME created with ARN: $TARGET_GROUP_ARN"
+          else
+            echo "Target Group $TARGET_GROUP_NAME already exists with ARN: $TARGET_GROUP_ARN"
+          fi
+
+          echo "TARGET_GROUP_ARN=$TARGET_GROUP_ARN" >> $GITHUB_ENV
+
+          # # Check if NLB already exists
+          # NLB_ARN=$(aws elbv2 describe-load-balancers --names "$NLB_NAME" --query "LoadBalancers[0].LoadBalancerArn" --output text 2>/dev/null || echo "None")
+          # if [ "$NLB_ARN" == "None" ]; then
+          #   echo "Creating NLB $NLB_NAME..."
+          #   NLB_ARN=$(aws elbv2 create-load-balancer \
+          #     --name $NLB_NAME \
+          #     --subnets $SUBNETS \
+          #     --type network \
+          #     --scheme internet-facing \
+          #     --ip-address-type ipv4 \
+          #     --query "LoadBalancers[0].LoadBalancerArn" \
+          #     --output text)
+          #   echo "NLB created with ARN: $NLB_ARN"
+          # else
+          #   echo "NLB $NLB_NAME already exists with ARN: $NLB_ARN"
+          # fi
+
+          # echo "Associate Elastic IP with NLB's primary network interface"
+          # NLB_ENI=$(aws ec2 describe-network-interfaces --filters "Name=description,Values=*Network Load Balancer $NLB_NAME*" --query "NetworkInterfaces[0].NetworkInterfaceId" --output text)
+          # aws ec2 associate-address --allocation-id "$EIP_ALLOCATION_ID" --network-interface-id "$NLB_ENI"
+          # echo "Elastic IP associated with NLB ENI $NLB_ENI."
 
       # - name: Fetch Load Balancer and Target Group Details
       #   id: fetch-lb-details
@@ -294,6 +339,8 @@ jobs:
           SUBNET_ID="subnet-aff804e7"
           SECURITY_GROUP_ID="sg-6fdda027"  
           NEW_TASK_DEF_ARN=${{ env.new_task_definition_arn }}
+          CONTAINER_NAME="react"
+          CONTAINER_PORT=3000
 
           # Check if the service already exists
           if aws ecs describe-services --cluster $CLUSTER_NAME --services $SERVICE_NAME --query "services[?status == 'ACTIVE'].serviceName" --output text | grep -q $SERVICE_NAME; then
@@ -312,7 +359,8 @@ jobs:
               --task-definition $NEW_TASK_DEF_ARN \
               --desired-count 1 \
               --launch-type FARGATE \
-              --network-configuration "awsvpcConfiguration={subnets=[$SUBNET_ID],securityGroups=[$SECURITY_GROUP_ID],assignPublicIp=ENABLED,networkInterfaceIds=[${{ env.ENI_ID }}]}"
+              --network-configuration "awsvpcConfiguration={subnets=[$SUBNET_ID],securityGroups=[$SECURITY_GROUP_ID],assignPublicIp=ENABLED}"
+              --load-balancers "targetGroupArn=${{ TARGET_GROUP_ARN }},containerName=$CONTAINER_NAME,containerPort=$CONTAINER_PORT"
             echo "Service $SERVICE_NAME created."
           fi
       
